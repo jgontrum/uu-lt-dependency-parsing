@@ -118,15 +118,7 @@ def transition(trans, stack, buffer, arcs):
     elif trans == RE and stack:
         # remove top from the stack
 
-        # Get the last word from the stack
-        top = stack[0]
-
-        # Search for an arc with top as dependent
-        valid_arc = list(filter(lambda arc: arc[1] == top, arcs))
-
-        # Precondition matched: Arc found that is leading tso w_i
-        if valid_arc:
-            stack.popleft()
+        stack.popleft()
 
     elif trans[0] == RA and stack and buffer:
         # add (top, next, label) to the arc set; move next from the buffer to the stack
@@ -147,15 +139,11 @@ def transition(trans, stack, buffer, arcs):
         top = stack.popleft()
         next = buffer[0]
 
-        # Check preconditions
-        arc_to_top = list(filter(lambda arc: arc[1] == top, arcs))
-        if top != 0 and not arc_to_top:
-            # top is not the root and there are no arcs with top as dependent
-            arc = (next, top, label)
-            arcs.append(arc)
-        else:
-            # Recover the stack
-            stack.appendleft(top)
+        arc = (next, top, label)
+
+        arcs.append(arc)
+    else:
+        print("Could not perform transformation.", file=sys.stdersr)
 
 
 def parse(sentence):
