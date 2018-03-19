@@ -8,7 +8,6 @@ My additions:
 """
 
 from collections import deque
-from sys import stderr
 
 SH = 0
 RE = 1
@@ -40,7 +39,7 @@ def print_tree(root, arcs, words, indent):
         print_tree(d, arcs, words, indent + "  ")
 
 
-def transition(trans, stack, buffer, arcs):
+def transition(trans, stack, buffer, arcs, words=None):
     """
     Perform a transition by modifying the data structures from the arguments.
     :param trans: Transition. Either int or tuple
@@ -49,16 +48,9 @@ def transition(trans, stack, buffer, arcs):
     :param arcs: List of tuples: (head, dependent, label)
     :return:
     """
-    global words
-
-    print(
-        f"STACK: {stack_to_string(stack)} ||| BUFFER: {stack_to_string(buffer)}",
-        file=stderr)
 
     if trans == SH:
         # move next from the buffer to the stack
-
-        print(f"SHIFT: BUFFER[{words[buffer[0]]}] -> STACK", file=stderr)
         stack.appendleft(buffer.popleft())
 
     elif trans == RE and stack:
@@ -72,7 +64,6 @@ def transition(trans, stack, buffer, arcs):
 
         # Precondition matched: Arc found that is leading tso w_i
         if valid_arc:
-            print(f"REDUCE: {words[top]} removed from STACK", file=stderr)
             stack.popleft()
 
     elif trans[0] == RA and stack and buffer:
@@ -83,8 +74,6 @@ def transition(trans, stack, buffer, arcs):
         next = buffer.popleft()
 
         arc = (top, next, label)
-
-        print(f"RA: ({words[top]}, {words[next]}, {label})", file=stderr)
 
         arcs.append(arc)
         stack.appendleft(next)
@@ -102,7 +91,6 @@ def transition(trans, stack, buffer, arcs):
             # top is not the root and there are no arcs with top as dependent
             arc = (next, top, label)
             arcs.append(arc)
-            print(f"LA: ({words[top]}, {words[next]}, {label})", file=stderr)
 
 
 def stack_to_string(stack):
