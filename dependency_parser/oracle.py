@@ -9,9 +9,11 @@ My additions:
 import sys
 from collections import deque
 
-from dependency_parser.transition import transition, SH, LA, RA, RE, \
-    print_tree, attach_orphans
-
+SH = 0
+RE = 1
+RA = 2
+LA = 3
+transitions = ["SH", "RE", "RA", "LA"]
 words = []
 
 labels = ["nsubj", "csubj", "nsubjpass", "csubjpass", "dobj", "iobj", "ccomp",
@@ -21,6 +23,26 @@ labels = ["nsubj", "csubj", "nsubjpass", "csubjpass", "dobj", "iobj", "ccomp",
           "foreign", "conj", "cc", "punct", "list", "parataxis", "remnant",
           "dislocated", "reparandum", "root", "dep", "nmod:npmod", "nmod:tmod",
           "nmod:poss", "acl:relcl", "cc:preconj", "compound:prt"]
+
+
+def attach_orphans(arcs, n):
+    attached = []
+    for (h, d, l) in arcs:
+        attached.append(d)
+    for i in range(1, n):
+        if not i in attached:
+            arcs.append((0, i, "root"))
+
+
+def print_tree(root, arcs, words, indent):
+    if root == 0:
+        print(" ".join(words[1:]))
+    children = [(root, i, l) for i in range(len(words)) for l in labels if
+                (root, i, l) in arcs]
+    for (h, d, l) in sorted(children):
+        print(indent + l + "(" + words[h] + "_" + str(h) + ", " + words[
+            d] + "_" + str(d) + ")")
+        print_tree(d, arcs, words, indent + "  ")
 
 
 def read_sentences():
@@ -77,6 +99,63 @@ def oracle(stack, buffer, heads, labels):
 
     # Else
     return SH
+
+
+def transition(trans, stack, buffer, arcs):
+    """
+    Perform a transition by modifying the data structures from the arguments.
+    :param trans: Transition. Either int or tuple
+    :param stack: 'top' is stack[0] (reversed compared to description in paper)
+    :param buffer: 'next' is buffer[0]
+    :param arcs: List of tuples: (head, dependent, label)
+    :return:
+    """
+
+    if trans == SH:
+        # move next from the buffer to the stack
+        stack.appendleft(buffer.popleft())
+
+    elif trans == RE and stack:
+        # remove top from the stack
+
+        # Get the last word from the stack
+        top = stack[0]
+
+        # Search for an arc with top as dependent
+        valid_arc = list(filter(lambda arc: arc[1] == top, arcs))
+
+        # Precondition matched: Arc found that is leading tso w_i
+        if valid_arc:
+            stack.popleft()
+
+    elif trans[0] == RA and stack and buffer:
+        # add (top, next, label) to the arc set; move next from the buffer to the stack
+
+        label = trans[1]
+        top = stack[0]
+        next = buffer.popleft()
+
+        arc = (top, next, label)
+
+        arcs.append(arc)
+        stack.appendleft(next)
+
+    elif trans[0] == LA and stack and buffer:
+        # add (next, top, label) to the arc set; remove top from the stack
+
+        label = trans[1]
+        top = stack.popleft()
+        next = buffer[0]
+
+        # Check preconditions
+        arc_to_top = list(filter(lambda arc: arc[1] == top, arcs))
+        if top != 0 and not arc_to_top:
+            # top is not the root and there are no arcs with top as dependent
+            arc = (next, top, label)
+            arcs.append(arc)
+        else:
+            # Recover the stack
+            stack.appendleft(top)
 
 
 def parse(sentence):
