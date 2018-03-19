@@ -3,19 +3,17 @@ Code taken from assignment: http://stp.lingfil.uu.se/~sara/kurser/parsing18/dep_
 
 My additions:
     -   transition()
-    -   stack_to_string()
-    -   other minor changes
+    -   labels
+    -   example
 """
 
 from collections import deque
 
 SH = 0
-RE = 1
-RA = 2
-LA = 3
-transitions = ["SH", "RE", "RA", "LA"]
+RA = 1
+LA = 2
 
-labels = ["det", "nsubj", "case", "nmod", "root"]
+labels = ["att", "subj", "pc", "pu", "obj", "pred", "root"]
 words = []
 
 
@@ -41,42 +39,34 @@ def print_tree(root, arcs, words, indent):
 
 def transition(trans, stack, buffer, arcs):
     """
-    Perform a transition by modifying the data structures from the arguments.
+    Perform an arc-standard transition by modifying the data structures
+    from the arguments.
+
+    Implements the algorithm in Küber et al. 2009, Figure 3.1.
+
     :param trans: Transition. Either int or tuple
-    :param stack: 'top' is stack[0] (reversed compared to description in paper)
+    :param stack: 'top' is stack[0] (reversed compared to description in source)
     :param buffer: 'next' is buffer[0]
     :param arcs: List of tuples: (head, dependent, label)
     :return:
     """
 
-    if trans == SH:
+    if trans == SH and buffer:
         # move next from the buffer to the stack
         stack.appendleft(buffer.popleft())
 
-    elif trans == RE and stack:
-        # remove top from the stack
-
-        # Get the last word from the stack
-        top = stack[0]
-
-        # Search for an arc with top as dependent
-        valid_arc = list(filter(lambda arc: arc[1] == top, arcs))
-
-        # Precondition matched: Arc found that is leading tso w_i
-        if valid_arc:
-            stack.popleft()
-
     elif trans[0] == RA and stack and buffer:
-        # add (top, next, label) to the arc set; move next from the buffer to the stack
+        # add (top, next, label) to the arc set; pop the stack
+        # and replace the symbol on the buffer
 
         label = trans[1]
-        top = stack[0]
+        top = stack.popleft()
         next = buffer.popleft()
 
         arc = (top, next, label)
 
         arcs.append(arc)
-        stack.appendleft(next)
+        buffer.appendleft(top)
 
     elif trans[0] == LA and stack and buffer:
         # add (next, top, label) to the arc set; remove top from the stack
@@ -86,9 +76,8 @@ def transition(trans, stack, buffer, arcs):
         next = buffer[0]
 
         # Check preconditions
-        arc_to_top = list(filter(lambda arc: arc[1] == top, arcs))
-        if top != 0 and not arc_to_top:
-            # top is not the root and there are no arcs with top as dependent
+        if top != 0:
+            # top is not the root
             arc = (next, top, label)
             arcs.append(arc)
         else:
@@ -96,22 +85,39 @@ def transition(trans, stack, buffer, arcs):
             stack.appendleft(top)
 
 
-def stack_to_string(stack):
-    global words
-    return [words[i] for i in stack]
-
-
 def parse():
     global words
-    words = "root the cat is on the mat today".split()
+    words = "root economic news had little effect on financial markets .".split()
     stack = deque([0])
     buffer = deque([x for x in range(1, len(words))])
     arcs = []
-    for trans in [SH, (LA, "det"), SH, (LA, "nsubj"), SH, SH, SH, (LA, "det"),
-                  (LA, "case"), (RA, "nmod"), RE, (RA, "nmod")]:
+
+    # Example taken from Küber et al. 2009, page 24.
+    for trans in [
+        SH,
+        (LA, "att"),
+        SH,
+        (LA, "subj"),
+        SH,
+        SH,
+        (LA, "att"),
+        SH,
+        SH,
+        SH,
+        (LA, "att"),
+        (RA, "pc"),
+        (RA, "att"),
+        (RA, "obj"),
+        SH,
+        (RA, "pu"),
+        (RA, "pred"),
+        SH
+    ]:
         transition(trans, stack, buffer, arcs)
 
-    assert len(buffer) == 0, "Parse incomplete, buffer not empty."
+    # Check terminal condition
+    assert len(buffer) == 0 and len(stack) == 1 and stack[0] == 0, \
+        "Parse incomplete, buffer not empty."
 
     attach_orphans(arcs, len(words))
     print_tree(0, arcs, words, "")
