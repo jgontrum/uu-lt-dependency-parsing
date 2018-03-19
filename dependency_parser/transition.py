@@ -39,7 +39,7 @@ def print_tree(root, arcs, words, indent):
         print_tree(d, arcs, words, indent + "  ")
 
 
-def transition(trans, stack, buffer, arcs, words=None):
+def transition(trans, stack, buffer, arcs):
     """
     Perform a transition by modifying the data structures from the arguments.
     :param trans: Transition. Either int or tuple

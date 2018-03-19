@@ -3,13 +3,15 @@ Code taken from assignment: http://stp.lingfil.uu.se/~sara/kurser/parsing18/dep_
 
 My additions:
     -   oracle()
-    -   other minor changes
+    -   import functions from transition.py
 """
 
 import sys
 from collections import deque
 
-from dependency_parser.transition import transition, transitions, SH, RE, RA, LA, print_tree, attach_orphans
+from dependency_parser.transition import transition, SH, LA, RA, RE, \
+    print_tree, attach_orphans
+
 words = []
 
 labels = ["nsubj", "csubj", "nsubjpass", "csubjpass", "dobj", "iobj", "ccomp",
@@ -20,10 +22,11 @@ labels = ["nsubj", "csubj", "nsubjpass", "csubjpass", "dobj", "iobj", "ccomp",
           "dislocated", "reparandum", "root", "dep", "nmod:npmod", "nmod:tmod",
           "nmod:poss", "acl:relcl", "cc:preconj", "compound:prt"]
 
+
 def read_sentences():
     sentence = []
     sentences = []
-    for line in open("example.tab"):
+    for line in sys.stdin:
         line = line.strip()
         if not line:
             sentences.append(sentence)
@@ -44,8 +47,37 @@ def print_tab(arcs, words, tags):
         print("\t".join([words[i], tags[i], str(hs[i]), ls[i]]))
     print()
 
+
 def oracle(stack, buffer, heads, labels):
+    """
+    Predicts the next transition based on gold annotations.
+    Algorithm can be found at Goldberg and Nivre, CoLING 2012, Algorithm 1.
+    :param stack: stack[0] == top
+    :param buffer: buffer[0] == next
+    :param heads: head for a given word
+    :param labels: label for a transition to a given word
+    :return:
+    """
+
+    top = stack[0]
+    next = buffer[0]
+
+    # Check for left arc
+    if heads[top] == next:
+        return LA, labels[top]
+
+    # Check for right arc
+    if heads[next] == top:
+        return RA, labels[next]
+
+    # Check for reduce
+    for k in range(0, top):
+        if heads[k] == next or heads[next] == k:
+            return RE
+
+    # Else
     return SH
+
 
 def parse(sentence):
     global words
@@ -65,6 +97,7 @@ def parse(sentence):
         print_tab(arcs, words, tags)
     else:
         print_tree(0, arcs, words, "")
+
 
 if __name__ == "__main__":
     tab_format = False
