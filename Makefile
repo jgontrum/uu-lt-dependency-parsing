@@ -12,8 +12,7 @@ all: env/bin/python
 env/bin/python:
 	$(PYTHON3) -m venv env
 	touch requirements.txt
-	env/bin/pip install $(PIPOPTIONS) --upgrade pip
-	env/bin/pip install $(PIPOPTIONS) wheel
+	env/bin/pip install $(PIPOPTIONS) --upgrade pip setuptools wheel
 	env/bin/pip install $(PIPOPTIONS) -r requirements.txt
 	env/bin/python setup.py develop
 
