@@ -111,14 +111,15 @@ def transition(trans, stack, buffer, arcs):
     :return:
     """
 
-    if trans == SH:
-        # move next from the buffer to the stack
-        stack.appendleft(buffer.popleft())
-
-    elif trans == RE and stack:
+    if trans == RE and stack:
         # remove top from the stack
 
         stack.popleft()
+
+    elif trans == SH:
+        # move next from the buffer to the stack
+
+        stack.appendleft(buffer.popleft())
 
     elif trans[0] == RA and stack and buffer:
         # add (top, next, label) to the arc set; move next from the buffer to the stack
@@ -143,7 +144,7 @@ def transition(trans, stack, buffer, arcs):
 
         arcs.append(arc)
     else:
-        print("Could not perform transformation.", file=sys.stdersr)
+        print("Could not perform transformation.", file=sys.stderr)
 
 
 def parse(sentence):
